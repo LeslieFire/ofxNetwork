@@ -6,6 +6,9 @@ ofxTCPClientAutoRecnt::ofxTCPClientAutoRecnt(void)
 {
 	_connectTime = 0;
 	_deltaTime = 0;
+	_bConnected = false;
+
+	_msgTx = "";
 }
 
 
@@ -24,16 +27,15 @@ bool ofxTCPClientAutoRecnt::setup(string ip, int port, bool blocking)
 
 	ofxTCPClient::setMessageDelimiter("\r\n");
 
-	startThread(true, false);   // blocking, verbose
-
-	if (!ofxTCPClient::setup(ip, port, blocking)){
+	_bConnected = ofxTCPClient::setup(ip, port, blocking);
+	if (!_bConnected){
 		ofLogError("ofxTCPClientAutoRecnt") << "setup failed.";
-		return false;
+	}else{
+		ofLogError("ofxTCPClientAutoRecnt") << "setup OK.";
 	}
-
 	
-
-	return true;
+	startThread(true, false);   // blocking, verbose
+	return _bConnected;
 }
 
 bool ofxTCPClientAutoRecnt::close(){
@@ -45,17 +47,15 @@ bool ofxTCPClientAutoRecnt::close(){
 
 void ofxTCPClientAutoRecnt::AutoReconnect()
 {
-	if ( !ofxTCPClient::isConnected()){
-		_deltaTime = ofGetElapsedTimeMillis() - _connectTime;
-		if (_deltaTime > 5000){
+	_deltaTime = ofGetElapsedTimeMillis() - _connectTime;
+	if (_deltaTime > 5000){
 
-			_connectTime = ofGetElapsedTimeMillis();
-
-			if (ofxTCPClient::setup(_ip, _port, _blocking)){
-				ofLogNotice("ofxTCPClientAutoRecnt") << "Reconnect success." ;
-			}else{
-				ofLogNotice("ofxTCPClientAutoRecnt") << "Reconnect Failed." ;
-			}
+		_connectTime = ofGetElapsedTimeMillis();
+		_bConnected = ofxTCPClient::setup(_ip, _port, _blocking);
+		if (_bConnected){
+			ofLogNotice("ofxTCPClientAutoRecnt") << "Reconnect success." ;
+		}else{
+			ofLogNotice("ofxTCPClientAutoRecnt") << "Reconnect Failed." ;
 		}
 	}
 }
